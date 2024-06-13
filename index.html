@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сделать снимок</title>
+</head>
+<body>
+    <h1>Сделать снимок</h1>
+    <label for="endpoint">Введите эндпоинт:</label>
+    <input type="text" id="endpoint" placeholder="https://example.com/upload" size="50">
+    <br><br>
+    <video id="video" width="640" height="480" autoplay></video>
+    <br><br>
+    <button id="snap">Сделать снимок</button>
+    <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+    <h2>Ответ сервера:</h2>
+    <div id="response"></div>
+
+    <script>
+        // Получаем доступ к элементам страницы
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const snapButton = document.getElementById('snap');
+        const endpointInput = document.getElementById('endpoint');
+        const responseDiv = document.getElementById('response');
+
+        // Запрашиваем доступ к камере
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(error => {
+                console.error('Ошибка доступа к камере:', error);
+            });
+
+        // Обработчик нажатия на кнопку "Сделать снимок"
+        snapButton.addEventListener('click', () => {
+            const endpoint = endpointInput.value;
+            if (!endpoint) {
+                responseDiv.textContent = 'Пожалуйста, введите эндпоинт.';
+                return;
+            }
+
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(blob => {
+                const formData = new FormData();
+                formData.append('file', blob, 'snapshot.png');
+
+                fetch(endpoint, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    responseDiv.textContent = 'Успешно отправлено: ' + JSON.stringify(data);
+                })
+                .catch(error => {
+                    responseDiv.textContent = 'Ошибка отправки: ' + error;
+                });
+            }, 'image/png');
+        });
+    </script>
+</body>
+</html>
